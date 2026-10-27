@@ -1,0 +1,75 @@
+name: newsletter-starter
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keila
+      POSTGRES_USER: keila
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run configure.py}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U keila -d keila]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [backend]
+  keila:
+    image: pentacent/keila:0.30.3@sha256:1c880b8946ef2395627dada2959c3f5c967f85170b0c3cb79552b8a3e22d6703
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: postgres://keila:${POSTGRES_PASSWORD:?Run configure.py}@postgres/keila
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?Run configure.py}
+      HASHID_SALT: ${HASHID_SALT:?Run configure.py}
+      KEILA_USER: ${KEILA_USER:?Set your own administrator email}
+      KEILA_PASSWORD: ${KEILA_PASSWORD:?Run configure.py}
+      URL_HOST: ${NEWSLETTER_HOST:?Set your own domain}
+      URL_SCHEMA: https
+      URL_PORT: '443'
+      PORT: '4000'
+      USER_CONTENT_DIR: /opt/keila/uploads
+      DISABLE_REGISTRATION: 'true'
+      DISABLE_SENDER_CREATION: 'false'
+      DISABLE_TZDATA_UPDATES: 'true'
+      MAILER_TYPE: smtp
+      MAILER_SMTP_FROM_EMAIL: ${MAILER_SMTP_FROM_EMAIL:?Set your own sender}
+      MAILER_SMTP_HOST: email-smtp.${AWS_REGION:?Choose an SES region}.amazonaws.com
+      MAILER_SMTP_PORT: '587'
+      MAILER_SMTP_USER: ${MAILER_SMTP_USER:?Set your regional SMTP username}
+      MAILER_SMTP_PASSWORD: ${MAILER_SMTP_PASSWORD:?Set your regional SMTP password}
+      MAILER_SMTP_AUTH_METHOD: password
+      MAILER_SMTP_TLS_MODE: starttls
+    volumes:
+      - uploads:/opt/keila/uploads
+    networks: [backend, edge]
+  proxy:
+    image: caddy:2.11.7@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      NEWSLETTER_HOST: ${NEWSLETTER_HOST:?Set your own domain}
+      STUDIO_HOST: ${STUDIO_HOST:?Set your own domain}
+      STUDIO_USER: ${STUDIO_USER:-editor}
+      STUDIO_PASSWORD_HASH: ${STUDIO_PASSWORD_HASH:?Hash your studio password}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../studio:/srv/studio:ro
+      - certificates:/data
+      - caddy_config:/config
+    networks: [edge]
+volumes:
+  database:
+  uploads:
+  certificates:
+  caddy_config:
+networks:
+  backend:
+    internal: true
+  edge:

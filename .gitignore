@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+*.sqlite*
+backups/
+exports/
+.private/
+__pycache__/
+.DS_Store
+node_modules/
