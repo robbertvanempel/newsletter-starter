@@ -61,7 +61,7 @@ Keila and this starter are open source. Your server, domain, SES deliveries and 
 
 Baseline: **Keila 0.30.3, PostgreSQL 16, Caddy 2.11.7**, with pinned official image digests. Keila's environment variables, API payload and SES webhook route were checked against [upstream v0.30.3](https://github.com/pentacent/keila/tree/v0.30.3). This is a reproducible baseline, not a claim that these versions will stay current. Before a new installation, check upstream releases and security notices; test upgrades and keep a rollback backup.
 
-Run local checks with:
+See the [baseline verification record](docs/verification.md). Run local checks with:
 
 ```sh
 node --test tests/*.test.mjs
